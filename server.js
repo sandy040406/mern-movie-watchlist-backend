@@ -3,7 +3,51 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 
-// Import routes
+// Load environment variables
+dotenv.config();
+
+// Initialize Express app
+const app = express();
+
+// ✅ Allowed origins (add your deployed frontend URL here)
+const allowedOrigins = [
+  'http://localhost:3000', // for local React dev
+  'http://localhost:5173', // for local Vite dev
+  'https://mern-movie-watchlist-frontend-9qx2mujxh.vercel.app' // ✅ deployed frontend
+];
+
+// ✅ CORS setup (allows only specific origins)
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`❌ CORS blocked request from origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    credentials: true,
+  })
+);
+
+// ✅ Body parsers
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
+// ✅ Request logger (for debugging)
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
+
+// ✅ Connect to MongoDB
+connectDB().catch((error) => {
+  console.error('⚠️  Database connection failed, but server will continue...');
+  console.error('   Make sure MONGO_URI is set in your .env file');
+});
+
+// ✅ Import routes safely
 let authRoutes, watchlistRoutes, recommendRoutes;
 try {
   authRoutes = require('./routes/authRoutes');
@@ -15,36 +59,10 @@ try {
   process.exit(1);
 }
 
-// Load environment variables
-dotenv.config();
-
-// Initialize Express app
-const app = express();
-
-// Middleware
-app.use(cors({ 
-  origin: ['http://localhost:3000', 'http://localhost:5173'], 
-  credentials: true 
-}));
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
-
-// Request logging middleware (for debugging)
-app.use((req, res, next) => {
-  console.log(`${req.method} ${req.path}`);
-  next();
-});
-
-// Connect to database (non-blocking, won't prevent server from starting)
-connectDB().catch((error) => {
-  console.error('⚠️  Database connection failed, but server will continue...');
-  console.error('   Make sure MONGO_URI is set in your .env file');
-});
-
-// Root route - API information
+// ✅ Root route - API info
 app.get('/', (req, res) => {
   res.status(200).json({
-    message: 'Movie Watchlist API',
+    message: '🎬 Movie Watchlist API',
     version: '1.0.0',
     status: 'running',
     endpoints: {
@@ -64,21 +82,20 @@ app.get('/', (req, res) => {
       },
       health: 'GET /api/health',
     },
-    documentation: 'All protected routes require Bearer token in Authorization header',
   });
 });
 
-// Health check route
+// ✅ Health check route
 app.get('/api/health', (req, res) => {
   res.status(200).json({ message: 'Server is running', status: 'OK' });
 });
 
-// Routes - Register all route handlers
+// ✅ Register all routes
 app.use('/api/auth', authRoutes);
 app.use('/api/watchlist', watchlistRoutes);
 app.use('/api/recommendations', recommendRoutes);
 
-// Debug: Log registered routes
+// ✅ Debug: Log registered routes
 console.log('📋 Registered routes:');
 console.log('  - POST /api/auth/register');
 console.log('  - POST /api/auth/login');
@@ -89,12 +106,12 @@ console.log('  - PUT /api/watchlist/:id');
 console.log('  - DELETE /api/watchlist/:id');
 console.log('  - POST /api/recommendations');
 
-// 404 handler - Must be after all routes
+// ✅ 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
 
-// Error handler middleware - Must be last, with 4 parameters
+// ✅ Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err.stack);
   res.status(500).json({
@@ -103,13 +120,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
+// ✅ Start server
 const PORT = process.env.PORT || 5000;
-
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
 });
 
 module.exports = app;
-
