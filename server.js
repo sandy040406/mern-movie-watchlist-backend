@@ -1,54 +1,53 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import connectDB from './config/db.js';
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import connectDB from "./config/db.js";
+import authRoutes from "./routes/authRoutes.js";
+import watchlistRoutes from "./routes/watchlistRoutes.js";
+import recommendationRoutes from "./routes/recommendRoutes.js";
 
-// Import routes
-import authRoutes from './routes/authRoutes.js';
-import watchlistRoutes from './routes/watchlistRoutes.js';
-import recommendRoutes from './routes/recommendRoutes.js'; // ✅ matches actual file name
-
-// Load environment variables
 dotenv.config();
 
-// Initialize Express app
 const app = express();
 
+// ✅ FIXED: Proper CORS setup for both dev and deployed frontend
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173", // for local development
+      "https://mern-movie-watchlist-frontend-6i6yd9bhl.vercel.app", // your deployed frontend
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
+  })
+);
+
+// Handle preflight requests
+app.options("*", cors());
+
 // Middleware
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://localhost:3000',
-    'https://mern-movie-watchlist-frontend.vercel.app',
-  ],
-  credentials: true,
-}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Connect to MongoDB
-connectDB().catch((err) => console.error('Database connection failed:', err));
-
 // Routes
-app.get('/', (req, res) => {
-  res.json({ message: 'Movie Watchlist API running 🚀' });
+app.use("/api/auth", authRoutes);
+app.use("/api/watchlist", watchlistRoutes);
+app.use("/api/recommendations", recommendationRoutes);
+
+// Default route
+app.get("/", (req, res) => {
+  res.send("✅ Movie Watchlist Backend is running successfully!");
 });
 
-app.use('/api/auth', authRoutes);
-app.use('/api/watchlist', watchlistRoutes);
-app.use('/api/recommendations', recommendRoutes); // ✅ same variable name
-
-// 404 handler
-app.use((req, res) => {
-  res.status(404).json({ message: 'Route not found' });
-});
-
-// Global error handler
-app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ message: err.message || 'Internal Server Error' });
-});
-
-// Start server
+// Connect DB and start server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Error connecting to database:", err);
+  });
