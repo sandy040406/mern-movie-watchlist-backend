@@ -10,37 +10,59 @@ dotenv.config();
 
 const app = express();
 
-// ✅ FIXED: Proper CORS setup for both dev and deployed frontend
+// ✅ Proper CORS setup for both local and deployed frontend
+const allowedOrigins = [
+  "http://localhost:5173",
+  "https://mern-movie-watchlist-frontend-6i6yd9bhl.vercel.app",
+];
+
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173", // for local development
-      "https://mern-movie-watchlist-frontend-6i6yd9bhl.vercel.app", // your deployed frontend
-    ],
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
 
-// Handle preflight requests
-app.options("*", cors());
+// ✅ Handle preflight requests safely
+app.use((req, res, next) => {
+  if (req.method === "OPTIONS") {
+    res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
+    res.setHeader(
+      "Access-Control-Allow-Origin",
+      req.headers.origin || allowedOrigins[0]
+    );
+    return res.sendStatus(200);
+  }
+  next();
+});
 
-// Middleware
+// ✅ Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
-// Routes
+// ✅ Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/watchlist", watchlistRoutes);
 app.use("/api/recommendations", recommendationRoutes);
 
-// Default route
+// ✅ Default route
 app.get("/", (req, res) => {
   res.send("✅ Movie Watchlist Backend is running successfully!");
 });
 
-// Connect DB and start server
+// ✅ Start server after DB connection
 const PORT = process.env.PORT || 5000;
 connectDB()
   .then(() => {
