@@ -5,7 +5,8 @@ import path from 'path';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import watchlistRoutes from './routes/watchlistRoutes.js';
-import recommendationRoutes from './routes/recommendationRoutes.js';
+import recommendRoutes from './routes/recommendRoutes.js';
+
 
 // Load environment variables
 dotenv.config();
